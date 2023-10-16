@@ -1,1 +1,1 @@
-# curly-invention
+# nimble challenge
