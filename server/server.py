@@ -6,12 +6,7 @@ import asyncio
 import aiortc
 from aiortc.contrib.signaling import TcpSocketSignaling, BYE
 import av
-import time
-import os
 
-import multiprocessing as multi
-from collections import deque
-import argparse
 
 ########################################################################################################################
 # code for generating video of ball bouncing
@@ -35,20 +30,18 @@ class FrameGenerator():
         self.resolution = resolution
         self.velocity = velocity       
         self.radius = radius            
-        self.x_pos = self.radius       
-        self.y_pos = self.radius
+        self.x_position = self.radius       
+        self.y_position = self.radius
         self.x_velocity = self.velocity
-        self.y_velocity = self.velocity                 
+        self.y_velocity = self.velocity             
     
     def get_frame(self):
         '''
             Generate the next frame
         '''
-
         # draw frame with ball in current position and add ball position to location queue
-        start_time = time.time()
         frame = np.zeros((self.resolution[1], self.resolution[0], 3), dtype='uint8') # image will be in bgr representation
-        cv.circle(frame, (self.x_pos, self.y_pos), radius = self.radius, thickness = -1, color = (0, 255, 0)) 
+        cv.circle(frame, (self.x_position, self.y_position), radius = self.radius, thickness = -1, color = (0, 255, 0)) 
 
         return frame
     
@@ -56,25 +49,22 @@ class FrameGenerator():
         '''
             Return stored center of the ball
         '''
-        return (self.x_pos, self.y_pos)
+        return (self.x_position, self.y_position)
     
     def increment_position(self):
         '''
             Increment the position of the ball by the velocity mulitplied by the sense.
             If ball is out of bounds, reverse the sense and increment in the other direction
         '''
-        # increment position
-        self.x_pos += self.x_velocity
-        self.y_pos += self.y_velocity
-
         # boundary check and move position in other direction if out of bounds
-        if self.x_pos < self.radius or self.x_pos > self.resolution[0] - self.radius:
+        if self.x_position < self.radius or self.x_position > self.resolution[0] - self.radius:
             self.x_velocity *= -1
-            self.x_pos += 2 * self.x_velocity
-        if self.y_pos < self.radius or self.y_pos > self.resolution[1] - self.radius:
+        if self.y_position < self.radius or self.y_position > self.resolution[1] - self.radius:
             self.y_velocity *= -1
-            self.y_pos += 2 * self.y_velocity
-        
+
+        # increment position
+        self.x_position += self.x_velocity
+        self.y_position += self.y_velocity
 
 class BallVideoStreamTrack(aiortc.VideoStreamTrack):
     '''

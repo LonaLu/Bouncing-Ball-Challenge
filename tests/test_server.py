@@ -33,15 +33,15 @@ def test_FrameGenerator():
     while point + 40 < 480 + 5: # 40 is the radius of the circle
         frame_gen.increment_position()
         point += 5
-    assert frame_gen.y_sense == -1
-    assert frame_gen.x_sense == 1
+    assert frame_gen.y_dir == -1
+    assert frame_gen.x_dir == 1
 
     # test x bounce
     while point + 40 < 640 + 4:
         frame_gen.increment_position()
         point += 5
-    assert frame_gen.y_sense == -1
-    assert frame_gen.x_sense == -1
+    assert frame_gen.y_dir == -1
+    assert frame_gen.x_dir == -1
 
     
 
