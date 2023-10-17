@@ -1,7 +1,6 @@
 from typing import Tuple
 import cv2 as cv
 import numpy as np
-
 import asyncio
 import aiortc
 from aiortc.contrib.signaling import TcpSocketSignaling, BYE
@@ -44,12 +43,6 @@ class FrameGenerator():
         cv.circle(frame, (self.x_position, self.y_position), radius = self.radius, thickness = -1, color = (110, 0, 255)) 
         return frame
     
-    def get_current_location(self):
-        '''
-            Return stored center of the ball
-        '''
-        return (self.x_position, self.y_position)
-    
     def increment_position(self):
         '''
             Increment the position of the ball by the velocity mulitplied by the sense.
@@ -78,7 +71,7 @@ class BallVideoStreamTrack(aiortc.VideoStreamTrack):
         self.velocity = velocity
         self.radius = radius
         self.resolution = (width, height)
-        self.frame_gen = FrameGenerator(velocity, radius, width, height)
+        self.frame_generator = FrameGenerator(velocity, radius, width, height)
         self.ball_location_dict = ball_location_dict # key will be frame timestamp, value will be (x,y) tuple
         self.count = 0
 
@@ -87,13 +80,12 @@ class BallVideoStreamTrack(aiortc.VideoStreamTrack):
             Generate and return the next frame in the stream
         '''
         pts, time_base = await self.next_timestamp()
-        x_pos, y_pos = self.frame_gen.x_position, self.frame_gen.y_position
-        frame = self.frame_gen.get_frame()
-        self.frame_gen.increment_position()
+        frame = self.frame_generator.get_frame()
+        self.frame_generator.increment_position()
         frame = av.VideoFrame.from_ndarray(frame, format='bgr24')
         frame.pts = pts
         frame.time_base = time_base
-        self.ball_location_dict[pts] = (x_pos,y_pos)
+        self.ball_location_dict[pts] = (self.frame_generator.x_position, self.frame_generator.y_position)
         self.count += 1
         return frame
     
@@ -133,19 +125,6 @@ class RTCServer():
         self.channel = self.pc.createDataChannel("RTCchannel")
         self.stream_track = stream_track
         self.pc.addTrack(self.stream_track)
-
-    async def prepare_tcp_rtc_offer(self):
-        '''
-            creates SDP offer to send to client over tcp
-        '''
-        offer = await self.pc.createOffer()
-        await self.pc.setLocalDescription(await self.pc.createOffer())
-
-    async def send_offer(self):
-        '''
-            sends offer to a client that connects with the server
-        '''
-        await self.signal.send(self.pc.localDescription)
         
     async def consume_signal(self) -> bool:
         '''
@@ -174,11 +153,10 @@ class BallVideoRTCServer(RTCServer):
         coordinates, the server will calculate the error in the coordinates and attempt to draw the error using
         cv.imshow().
     '''
-    def __init__(self, host: str, port: str, velocity: int, radius: int, width, height, display: bool = False):
+    def __init__(self, host: str, port: str, velocity: int, radius: int, width, height):
         self.ball_position = {}
         st = BallVideoStreamTrack(velocity, radius, width, height, self.ball_position)
         super().__init__(host, port, st)
-        self.display=display
 
     def calc_rms_error(self, actual: Tuple[int, int], estimated: Tuple[int, int]):
         '''
@@ -192,16 +170,15 @@ class BallVideoRTCServer(RTCServer):
             Draws original ball frame in green with client's estimate on top with
             a red center and outline.
         '''
-        if self.display:
-            resolution = self.stream_track.resolution
-            radius = self.stream_track.radius
-            frame = np.zeros((resolution[1], resolution[0], 3), dtype='uint8')
-            cv.circle(frame, actual, radius=radius, color=(0,255,0), thickness=-1)
-            cv.circle(frame, actual, radius=1, color=(255,0,0), thickness=5)
-            cv.circle(frame, estimated, radius=1, color=(0,0,255), thickness=5)
-            cv.circle(frame, estimated, radius=radius, color=(0,0,255), thickness=3)
-            cv.imshow("server", frame)
-            cv.waitKey(1)
+        resolution = self.stream_track.resolution
+        radius = self.stream_track.radius
+        frame = np.zeros((resolution[1], resolution[0], 3), dtype='uint8')
+        cv.circle(frame, actual, radius=radius, color=(0,255,0), thickness=-1)
+        cv.circle(frame, actual, radius=1, color=(255,0,0), thickness=5)
+        cv.circle(frame, estimated, radius=1, color=(0,0,255), thickness=5)
+        cv.circle(frame, estimated, radius=radius, color=(0,0,255), thickness=3)
+        cv.imshow("server", frame)
+        cv.waitKey(1)
 
 
     async def register_on_callbacks(self):
@@ -219,14 +196,12 @@ class BallVideoRTCServer(RTCServer):
             values = message.split('\t') # for returned estimated coordinates, server expects a string with format: "{x_pos}\t{y_pos}\t{timestamp}"
             try:
                 ball_location_dict = self.stream_track.ball_location_dict
-                radius = self.stream_track.radius
-                resolution = self.stream_track.resolution
                 actual_loc = ball_location_dict[int(values[2])]
                 estimated_loc = (int(values[0]), int(values[1]))
                 self.show_error_frame(actual_loc, estimated_loc)
                 error = self.calc_rms_error(actual_loc, estimated_loc)
-                print(f"time stamp {values[2]}:\n\tactual location: "
-                      f"{actual_loc}\n\testimated location: {estimated_loc}\n\tRMSE: {error}")
+                # print(f"time stamp {values[2]}:\n\tactual location: "
+                #       f"{actual_loc}\n\testimated location: {estimated_loc}\n\tRMSE: {error}")
                 del ball_location_dict[int(values[2])]
             except Exception as e:
                 print(e)
@@ -247,9 +222,16 @@ class BallVideoRTCServer(RTCServer):
             Event loop for running the server
         '''
         await self.register_on_callbacks()
-        await self.prepare_tcp_rtc_offer()
-        await self.send_offer()
+
+        # creates SDP offer to send to client over tcp
+        offer = await self.pc.createOffer()
+        await self.pc.setLocalDescription(offer)
+
+        # sends offer to a client that connects with the server
+        await self.signal.send(self.pc.localDescription)
+
         print("offer received")
+
         while await self.consume_signal():
             print("signal consumed")
             continue
@@ -279,7 +261,7 @@ async def main():
     '''
     # Server can only have one connection at a time, but the while loop spins up a new server if a disconnection happens
     while True:
-        server = BallVideoRTCServer(host='localhost', port='50051', velocity=3, radius=20, width=640, height=480, display='display')
+        server = BallVideoRTCServer(host='localhost', port='50051', velocity=3, radius=20, width=640, height=480)
         await server.run()
         await server.shutdown()
 
