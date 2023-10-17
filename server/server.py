@@ -1,6 +1,4 @@
 import asyncio
-from aiortc.contrib.signaling import TcpSocketSignaling, BYE
-from ball_bouncing_track import BallBouncingTrack
 from rtcserver import BallVideoRTCServer
 
 async def main():

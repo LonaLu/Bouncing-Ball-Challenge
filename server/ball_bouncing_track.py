@@ -6,7 +6,7 @@ class BallBouncingTrack(aiortc.VideoStreamTrack):
     '''
         New stream track that will create a video of a ball bouncing across the screen
     '''
-    def __init__(self, velocity: int, radius: int, width, height, ball_location_dict: dict = {}):
+    def __init__(self, velocity: int, radius: int, width: int, height: int, ball_location_dict: dict = {}):
         '''
             Initialize variables needed for the stream track. This includes instatiating the grame generator and keeping
             a dictionary for ball location.
@@ -14,7 +14,8 @@ class BallBouncingTrack(aiortc.VideoStreamTrack):
         super().__init__()
         self.velocity = velocity
         self.radius = radius
-        self.resolution = (width, height)
+        self.width = width
+        self.height = height
         self.frame_generator = Frame(velocity, radius, width, height)
         self.ball_location_dict = ball_location_dict # key will be frame timestamp, value will be (x,y) tuple
         self.count = 0
