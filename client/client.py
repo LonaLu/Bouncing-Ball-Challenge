@@ -1,6 +1,3 @@
-# written by Branden Kretschmer for Nimble Robotics python coding challenge
-# email: brandenkretsch@gmail.com
-
 from typing import Tuple
 import cv2 as cv
 import numpy as np
@@ -328,83 +325,12 @@ async def main():
         Entry point into client.py. Gets arguments to run script from command line or environment variables.
         Then it builds a client and runs it
     '''
-    # get command line args
-    arg_parser = argparse.ArgumentParser(
-        prog='client.py',
-        description='This program connects to server.py in the same directory. It is a WebRTC client that recieves images of a bouncing ball and estimates its center'
-    )
+    dp = 6
+    minDist = 8
+    host = 'localhost'
+    port = 50051
+    display = 'display'
 
-    arg_parser.add_argument(
-        '-n', '--host',
-        action='store',
-        help = 'host Ip address',
-        nargs='?',
-        default=None
-    )
-
-    arg_parser.add_argument(
-        '-port', '--port',
-        action='store',
-        help = 'host TCP port number for signaling',
-        nargs='?',
-        default=None
-    )
-
-    arg_parser.add_argument(
-        '-d', '--display', 
-        dest='display', 
-        action='store_true',
-        help = 'Select displaying of frames. Defaults to no if not set'
-    )
-    arg_parser.add_argument(
-        '-nd', '--no-display', 
-        dest='display', 
-        action='store_false',
-        help = 'Select no displaying of frames. Defaults to no if not set'
-    )
-
-    arg_parser.add_argument(
-        "--dp",
-        action='store',
-        help = 'Accumulator Matrix scale for detecting center of circle. Should leave at default value if using default resolution/radius/etc',
-        nargs='?',
-        default=6,
-        type=float
-    )
-
-    arg_parser.add_argument(
-        "--minDist",
-        action='store',
-        help = 'Minimum distance between centers for detecting center of circle. Should leave at default value if using default resolution/radius/etc',
-        nargs='?',
-        default=8,
-        type=float
-    )
-    arg_parser.set_defaults(display=False)
-
-    args = arg_parser.parse_args()
-
-    dp = args.dp
-    print(dp)
-    minDist = args.minDist
-    host = args.host
-    port = args.port
-    display = args.display
-    # if host or port weren't specified in command line, check environment variables
-    # The following block of code gets a service IP and Port to contact the server when running in Kubernetes
-    if host is None or port is None:
-        try:
-            service_name = os.getenv("SERVER_SERVICE_NAME")
-            host = os.getenv(f"{service_name}_SERVICE_HOST")
-            port = os.getenv(f"{service_name}_SERVICE_PORT")
-        except Exception as e:
-            print(e)
-    
-    # if host or port still weren't specified, set default to local host and port 50051
-    if host is None:
-        host = 'localhost'
-    if port is None:
-        port = '50051'
     print(f"connecting to: {host}:{port}")
     # build client and run it
     client = BallVideoRTCClient(host, port, display=display, dp=dp, minDist=minDist)
