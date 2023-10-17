@@ -16,7 +16,7 @@ class FrameGenerator():
     '''
         Class used to generate frames of a ball bouncing across the screen
     '''
-    def __init__(self, velocity: int = 5, radius: int = 40, resolution: Tuple[int, int] = (640, 480)):
+    def __init__(self, velocity: int = 5, radius: int = 40, width = 640, height = 480):
         '''
             Initialize variables to start generating frames
                 resolution = resolution    # resolution of the frames (width, height)
@@ -27,20 +27,20 @@ class FrameGenerator():
                 x_sense = 1                # direction of x velocity. Positive is to the right.
                 y_sense = 1                # direction of y velocity. Positive is down.
         '''
-        self.resolution = resolution
-        self.velocity = velocity       
-        self.radius = radius            
-        self.x_position = self.radius       
-        self.y_position = self.radius
-        self.x_velocity = self.velocity
-        self.y_velocity = self.velocity             
+        self.radius = radius
+        self.width = width
+        self.height = height            
+        self.x_position = radius       
+        self.y_position = radius
+        self.x_velocity = velocity
+        self.y_velocity = velocity             
     
     def get_frame(self):
         '''
             Generate the next frame
         '''
         # draw frame with ball in current position and add ball position to location queue
-        frame = np.zeros((self.resolution[1], self.resolution[0], 3), dtype='uint8') # image will be in bgr representation
+        frame = np.zeros((self.height, self.width, 3), dtype='uint8') # image will be in bgr representation
         cv.circle(frame, (self.x_position, self.y_position), radius = self.radius, thickness = -1, color = (0, 255, 0)) 
 
         return frame
@@ -57,9 +57,9 @@ class FrameGenerator():
             If ball is out of bounds, reverse the sense and increment in the other direction
         '''
         # boundary check and move position in other direction if out of bounds
-        if self.x_position < self.radius or self.x_position > self.resolution[0] - self.radius:
+        if self.x_position < self.radius or self.x_position > self.width - self.radius:
             self.x_velocity *= -1
-        if self.y_position < self.radius or self.y_position > self.resolution[1] - self.radius:
+        if self.y_position < self.radius or self.y_position > self.height - self.radius:
             self.y_velocity *= -1
 
         # increment position
@@ -70,7 +70,7 @@ class BallVideoStreamTrack(aiortc.VideoStreamTrack):
     '''
         New stream track that will create a video of a ball bouncing across the screen
     '''
-    def __init__(self, velocity: int, radius: int, resolution: Tuple[int, int], ball_location_dict: dict = {}):
+    def __init__(self, velocity: int, radius: int, width, height, ball_location_dict: dict = {}):
         '''
             Initialize variables needed for the stream track. This includes instatiating the grame generator and keeping
             a dictionary for ball location.
@@ -78,8 +78,8 @@ class BallVideoStreamTrack(aiortc.VideoStreamTrack):
         super().__init__()
         self.velocity = velocity
         self.radius = radius
-        self.resolution = resolution
-        self.frame_gen = FrameGenerator(velocity, radius, resolution)
+        self.resolution = (width, height)
+        self.frame_gen = FrameGenerator(velocity, radius, width, height)
         self.ball_location_dict = ball_location_dict # key will be frame timestamp, value will be (x,y) tuple
         self.count = 0
 
@@ -197,9 +197,9 @@ class BallVideoRTCServer(RTCServer):
         coordinates, the server will calculate the error in the coordinates and attempt to draw the error using
         cv.imshow().
     '''
-    def __init__(self, host: str, port: str, velocity: int, radius: int, resolution: Tuple[int, int], display: bool = False):
+    def __init__(self, host: str, port: str, velocity: int, radius: int, width, height, display: bool = False):
         self.ball_position = {}
-        st = BallVideoStreamTrack(velocity, radius, resolution, self.ball_position)
+        st = BallVideoStreamTrack(velocity, radius, width, height, self.ball_position)
         super().__init__(host, port, st)
         self.display=display
 
@@ -302,14 +302,15 @@ async def main():
     '''
     velocity = 3
     radius = 20
-    resolution = (640, 480)
+    width = 640
+    height = 480
     display = 'display'
     host = 'localhost'
     port = '50051'
 
     # Server can only have one connection at a time, but the while loop spins up a new server if a disconnection happens
     while True:
-        server = BallVideoRTCServer(host, port, velocity, radius, resolution, display=display)
+        server = BallVideoRTCServer(host, port, velocity, radius, width, height, display=display)
         await server.run()
         await server.shutdown()
 
