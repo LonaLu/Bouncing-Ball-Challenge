@@ -5,10 +5,7 @@ import numpy as np
 import asyncio
 import aiortc
 from aiortc.contrib.signaling import TcpSocketSignaling, BYE
-import av
 import ctypes
-import argparse
-import os
 
 import multiprocessing as multi
 from collections import deque
