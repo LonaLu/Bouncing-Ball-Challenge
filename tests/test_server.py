@@ -1,8 +1,3 @@
-# written by Branden Kretschmer for Nimble Robotics python coding challenge
-# email: brandenkretsch@gmail.com
-
-# this file runs unit tests on server functions
-
 import pytest
 from unittest import mock
 import ctypes

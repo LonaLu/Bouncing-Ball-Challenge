@@ -2,9 +2,9 @@ import aiortc
 from aiortc.contrib.signaling import TcpSocketSignaling, BYE
 from ball_bouncing_track import BallBouncingTrack
 from typing import Tuple
-import cv2 as cv
+import cv2
 import numpy as np
-class BallVideoRTCServer():
+class RTCServer():
     '''
         Class for an RTCServer that serves a video of a ball bouncing across the screen. If the client sends back
         coordinates, the server will calculate the error in the coordinates and attempt to draw the error using
@@ -25,7 +25,7 @@ class BallVideoRTCServer():
         return np.linalg.norm(np.asarray(actual) - np.asarray(estimated))
 
 
-    def show_error_frame(self, actual: Tuple[int, int], estimated: Tuple[int, int]):
+    def display_frame(self, actual: Tuple[int, int], estimated: Tuple[int, int]):
         '''
             Draws original ball frame in green with client's estimate on top with
             a red center and outline.
@@ -33,11 +33,11 @@ class BallVideoRTCServer():
         radius = self.stream_track.radius
         frame_actual = np.zeros((self.stream_track.height, self.stream_track.width, 3), dtype='uint8')
         frame_estimated = np.zeros((self.stream_track.height, self.stream_track.width, 3), dtype='uint8')
-        cv.circle(frame_actual, actual, radius=radius, color=(0,255,0), thickness=-1)
-        cv.circle(frame_estimated, estimated, radius=radius, color=(0,0,255), thickness=-1)
-        frame = cv.addWeighted(frame_actual, 0.5, frame_estimated, 0.5, 0)
-        cv.imshow("server", frame)
-        cv.waitKey(1)
+        cv2.circle(frame_actual, actual, radius=radius, color=(0,255,0), thickness=-1)
+        cv2.circle(frame_estimated, estimated, radius=radius, color=(0,0,255), thickness=-1)
+        frame = cv2.addWeighted(frame_actual, 0.5, frame_estimated, 0.5, 0)
+        cv2.imshow("server", frame)
+        cv2.waitKey(1)
 
     async def register_on_callbacks(self):
         '''
@@ -56,7 +56,7 @@ class BallVideoRTCServer():
                 ball_location_dict = self.stream_track.ball_location_dict
                 actual_loc = ball_location_dict[int(values[2])]
                 estimated_loc = (int(values[0]), int(values[1]))
-                self.show_error_frame(actual_loc, estimated_loc)
+                self.display_frame(actual_loc, estimated_loc)
                 error = self.calculate_error(actual_loc, estimated_loc)
                 print(f"time stamp {values[2]}:\n\tactual location: "
                       f"{actual_loc}\n\testimated location: {estimated_loc}\n\tError: {error}")

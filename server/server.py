@@ -1,5 +1,5 @@
 import asyncio
-from rtcserver import BallVideoRTCServer
+from rtc_server import RTCServer
 
 async def main():
     '''
@@ -8,7 +8,7 @@ async def main():
     '''
     # Server can only have one connection at a time, but the while loop spins up a new server if a disconnection happens
     while True:
-        server = BallVideoRTCServer(host='localhost', port='50051', velocity=3, radius=20, width=640, height=480)
+        server = RTCServer(host='localhost', port='50051', velocity=3, radius=20, width=640, height=480)
         await server.run()
         await server.shutdown()
 
