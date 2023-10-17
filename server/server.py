@@ -41,8 +41,7 @@ class FrameGenerator():
         '''
         # draw frame with ball in current position and add ball position to location queue
         frame = np.zeros((self.height, self.width, 3), dtype='uint8') # image will be in bgr representation
-        cv.circle(frame, (self.x_position, self.y_position), radius = self.radius, thickness = -1, color = (0, 255, 0)) 
-
+        cv.circle(frame, (self.x_position, self.y_position), radius = self.radius, thickness = -1, color = (110, 0, 255)) 
         return frame
     
     def get_current_location(self):
@@ -88,7 +87,7 @@ class BallVideoStreamTrack(aiortc.VideoStreamTrack):
             Generate and return the next frame in the stream
         '''
         pts, time_base = await self.next_timestamp()
-        x_pos, y_pos = self.frame_gen.get_current_location()
+        x_pos, y_pos = self.frame_gen.x_position, self.frame_gen.y_position
         frame = self.frame_gen.get_frame()
         self.frame_gen.increment_position()
         frame = av.VideoFrame.from_ndarray(frame, format='bgr24')
@@ -167,28 +166,6 @@ class RTCServer():
         if obj is BYE:
             print("goodbye")
         return False
-
-
-    async def register_on_callbacks(self):
-        '''
-            Register callbacks when an RTC event happens.
-            This should be implemented in a subclass
-        '''
-        raise NotImplementedError
-    
-    async def run(self):
-        '''
-            Method to run server.
-            This should be implemented in a subclass
-        '''
-        raise NotImplementedError
-    
-    async def shutdown(self):
-        '''
-            Method to shut down server
-            This should be implemented in a subclass
-        '''
-        raise NotImplementedError
         
 
 class BallVideoRTCServer(RTCServer):
@@ -300,17 +277,9 @@ async def main():
         Entry point into server.py. Gets parameters to run script from command line arguments or environment variables.
         Then it builds a BallVideoRTCServer and runs it.
     '''
-    velocity = 3
-    radius = 20
-    width = 640
-    height = 480
-    display = 'display'
-    host = 'localhost'
-    port = '50051'
-
     # Server can only have one connection at a time, but the while loop spins up a new server if a disconnection happens
     while True:
-        server = BallVideoRTCServer(host, port, velocity, radius, width, height, display=display)
+        server = BallVideoRTCServer(host='localhost', port='50051', velocity=3, radius=20, width=640, height=480, display='display')
         await server.run()
         await server.shutdown()
 

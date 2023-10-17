@@ -156,30 +156,6 @@ class RTCClient():
             print("goodbye")
         
         return False
-    
-
-    async def register_on_callbacks(self):
-        '''
-            Register callbacks when an RTC event happens.
-            This should be implemented in a subclass
-        '''
-        raise NotImplementedError
-    
-
-    async def run(self):
-        '''
-            Method to run server.
-            This should be implemented in a subclass
-        '''
-        raise NotImplementedError
-    
-
-    async def shutdown(self):
-        '''
-            Method to shut down server
-            This should be implemented in a subclass
-        '''
-        raise NotImplementedError
 
 
 class BallVideoRTCClient(RTCClient):
