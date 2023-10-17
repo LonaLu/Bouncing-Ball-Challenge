@@ -36,9 +36,9 @@ class FrameGenerator():
         self.velocity = velocity       
         self.radius = radius            
         self.x_pos = self.radius       
-        self.y_pos = self.radius        
-        self.x_sense = 1               
-        self.y_sense = 1              
+        self.y_pos = self.radius
+        self.x_velocity = self.velocity
+        self.y_velocity = self.velocity                 
     
     def get_frame(self):
         '''
@@ -64,16 +64,16 @@ class FrameGenerator():
             If ball is out of bounds, reverse the sense and increment in the other direction
         '''
         # increment position
-        self.x_pos += self.velocity * self.x_sense
-        self.y_pos += self.velocity * self.y_sense
+        self.x_pos += self.x_velocity
+        self.y_pos += self.y_velocity
 
         # boundary check and move position in other direction if out of bounds
         if self.x_pos < self.radius or self.x_pos > self.resolution[0] - self.radius:
-            self.x_sense *= -1
-            self.x_pos += 2 * self.velocity * self.x_sense
+            self.x_velocity *= -1
+            self.x_pos += 2 * self.x_velocity
         if self.y_pos < self.radius or self.y_pos > self.resolution[1] - self.radius:
-            self.y_sense *= -1
-            self.y_pos += 2 * self.velocity * self.y_sense
+            self.y_velocity *= -1
+            self.y_pos += 2 * self.y_velocity
         
 
 class BallVideoStreamTrack(aiortc.VideoStreamTrack):
