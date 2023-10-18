@@ -25,17 +25,17 @@ class RTCServer():
         return np.linalg.norm(np.asarray(actual) - np.asarray(estimated))
 
 
-    def display_frame(self, actual: Tuple[int, int], estimated: Tuple[int, int]):
+    def display_frame(self, server_loc: Tuple[int, int], client_estimated_loc: Tuple[int, int]):
         '''
             Draws original ball frame in green with client's estimate on top with
             a red center and outline.
         '''
         radius = self.stream_track.radius
-        frame_actual = np.zeros((self.stream_track.height, self.stream_track.width, 3), dtype='uint8')
-        frame_estimated = np.zeros((self.stream_track.height, self.stream_track.width, 3), dtype='uint8')
-        cv2.circle(frame_actual, actual, radius=radius, color=(0,255,0), thickness=-1)
-        cv2.circle(frame_estimated, estimated, radius=radius, color=(0,0,255), thickness=-1)
-        frame = cv2.addWeighted(frame_actual, 0.5, frame_estimated, 0.5, 0)
+        frame_server = np.zeros((self.stream_track.height, self.stream_track.width, 3), dtype='uint8')
+        frame_client_estimated = np.zeros((self.stream_track.height, self.stream_track.width, 3), dtype='uint8')
+        cv2.circle(frame_server, server_loc, radius=radius, color=(0,255,0), thickness=-1)
+        cv2.circle(frame_client_estimated, client_estimated_loc, radius=radius, color=(0,0,255), thickness=-1)
+        frame = cv2.addWeighted(frame_server, 0.5, frame_client_estimated, 0.5, 0)
         cv2.imshow("server", frame)
         cv2.waitKey(1)
 
@@ -52,14 +52,18 @@ class RTCServer():
                 RMS Error and draw the received ball coordinates from the client.
             '''
             values = message.split('\t') # for returned estimated coordinates, server expects a string with format: "{x_pos}\t{y_pos}\t{timestamp}"
+
             try:
                 ball_location_dict = self.stream_track.ball_location_dict
-                actual_loc = ball_location_dict[int(values[2])]
-                estimated_loc = (int(values[0]), int(values[1]))
-                self.display_frame(actual_loc, estimated_loc)
-                error = self.calculate_error(actual_loc, estimated_loc)
-                print(f"time stamp {values[2]}:\n\tactual location: "
-                      f"{actual_loc}\n\testimated location: {estimated_loc}\n\tError: {error}")
+                timestamp = int(values[2])
+                server_loc = ball_location_dict[timestamp]
+                client_estimated_loc = (int(values[0]), int(values[1]))
+                self.display_frame(server_loc, client_estimated_loc)
+                error = self.calculate_error(server_loc, client_estimated_loc)
+                #print timestamp and corresponding values every few seconds
+                if timestamp % 50000 == 0:
+                    print(f"=====timestamp {timestamp}=====\n\tserver ball location: "
+                        f"{server_loc}\n\tclient estimated location: {client_estimated_loc}\n\tError(euclidean distance): {round(error,2)}")
                 del ball_location_dict[int(values[2])]
             except Exception as e:
                 print("Error:", e)

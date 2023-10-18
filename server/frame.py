@@ -30,7 +30,7 @@ class Frame():
         '''
         # draw frame with ball in current position and add ball position to location queue
         frame = np.zeros((self.height, self.width, 3), dtype='uint8') # image will be in bgr representation
-        cv.circle(frame, (self.x_position, self.y_position), radius = self.radius, thickness = -1, color = (110, 0, 255)) 
+        cv.circle(frame, (self.x_position, self.y_position), radius = self.radius, thickness = -1, color = (0, 0, 255)) 
         return frame
     
     def increment_position(self):
