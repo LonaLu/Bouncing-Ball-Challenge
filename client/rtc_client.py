@@ -11,7 +11,7 @@ class RTCClient():
         An RTCClient meant to consume a BallVideoStreamTrack (defined in server), process the frame, and
         eventually send back an estimated center of the ball from the consumed frame.
     '''
-    def __init__(self, host: str, port: str, display: bool = False, dp: float= 6, minDist: float = 5):
+    def __init__(self, host: str, port: str):
         '''
             Initializes values needed and also starts _frame_proc process for analyzing frames.
            _proc_value.x represents the extimated x coordinate of the circle from the last analyzed frame
@@ -20,8 +20,8 @@ class RTCClient():
         '''
         self.signal: TcpSocketSignaling = TcpSocketSignaling(host, port)
         self.pc = aiortc.RTCPeerConnection()
-        self.channel: aiortc.RTCDataChannel = None
-        self.track: aiortc.MediaStreamTrack = None
+        self.channel = None
+        self.track = None
         self._m = mp.Manager()
         self._proc_que = self._m.Queue()
         self._proc_value = mp.Value(POINT, lock=False)   # don't need a lock because there's only 1 writer and 1 reader. read/writes are synced as well
@@ -33,13 +33,9 @@ class RTCClient():
         self._frame_proc = mp.Process(target=detect_center_proc, args=(
             self._proc_que,
             self._proc_value,
-            self._proc_cond,
-            dp,
-            minDist
+            self._proc_cond
         ))
         self._frame_proc.start()
-        self.display = display
-
 
     async def register_on_callbacks(self):
         '''
@@ -78,11 +74,10 @@ class RTCClient():
      
     def show_frame(self, ndarr_frame: np.ndarray):
         '''
-            print aframe in bgr format if self.display is set to True.
+            print aframe in bgr format
         '''
-        if self.display:
-            cv2.imshow('client', ndarr_frame)
-            cv2.waitKey(1)
+        cv2.imshow('client', ndarr_frame)
+        cv2.waitKey(1)
 
 
     async def _run_track(self) -> bool:
@@ -92,8 +87,7 @@ class RTCClient():
         try:
             frame = await self.track.recv()
         except aiortc.mediastreams.MediaStreamError as e:
-            print(e)
-            print("run track returning false")
+            print("Run Track Error:", e)
             return False
         
         time_stamp = frame.pts
@@ -125,7 +119,6 @@ class RTCClient():
 
         await self.register_on_callbacks()
         while await self.consume_signal():
-            print("still consuming")
             if self.track is not None:
                 while await self._run_track():
                     pass

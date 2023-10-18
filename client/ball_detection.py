@@ -32,11 +32,12 @@ def detect_center_proc(que: mp.Queue, val: mp.Value, cond: mp.Value, dp: float =
     '''
     try:
         while True:
-            update_center_values(que, val, cond, dp, minDist)
+            update_center_values(que, val, cond)
     except Exception as e:
+        print("Detect Center Error:", e)
         return
     
-def update_center_values(que: mp.Queue, val: mp.Value, cond: mp.Value, dp: float = 6, minDist: float = 5):
+def update_center_values(que: mp.Queue, val: mp.Value, cond: mp.Value):
     '''
         This should only be called in detect_center_proc. This was pulled out of the process loop
         in order to write a unit test for it.
@@ -45,7 +46,7 @@ def update_center_values(que: mp.Queue, val: mp.Value, cond: mp.Value, dp: float
     if que.qsize() > 0 and cond.value==0:
         with cond.get_lock():
             frame, timestamp = que.get() # get bgr frame from the que
-            circles = detect_center(frame, dp, minDist)
+            circles = detect_center(frame)
             if circles is None:
                 # if algorithm cant find center of circle, use last estimated position
                 print(f"skipped frame at timestamp {timestamp}")
@@ -58,7 +59,7 @@ def update_center_values(que: mp.Queue, val: mp.Value, cond: mp.Value, dp: float
                 val.time_stamp = timestamp
                 cond.value = 1
 
-def detect_center(frame: np.ndarray, dp: float = 6, minDist: float = 5) -> list[int, int, int]:
+def detect_center(frame: np.ndarray, dp: float = 6, minDist: float = 8) -> list[int, int, int]:
     '''
         This function estimates the center of a circle in an image using the Hough Transformation
         input:
@@ -76,8 +77,7 @@ def detect_center(frame: np.ndarray, dp: float = 6, minDist: float = 5) -> list[
     # gets, no need to blur here
 
     # apply hough circle tranform to get the estimated center of the circle
-    num_rows = gray_frame.shape[0]
-    circles = cv2.HoughCircles(gray_frame, cv2.HOUGH_GRADIENT, dp=dp, minDist=minDist)
+    circles = cv2.HoughCircles(gray_frame, cv2.HOUGH_GRADIENT, dp, minDist)
     if circles is not None:
         return circles[0][0]
     return None
