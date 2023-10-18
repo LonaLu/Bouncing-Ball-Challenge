@@ -25,7 +25,7 @@ class BallBouncingTrack(aiortc.VideoStreamTrack):
         '''
         pts, time_base = await self.next_timestamp()
         frame = self.frame_generator.get_frame()
-        self.frame_generator.increment_position()
+        self.frame_generator.ball_move()
         self.ball_location_dict[pts] = (self.frame_generator.x_position, self.frame_generator.y_position)
         frame = av.VideoFrame.from_ndarray(frame, format='bgr24')
         frame.pts = pts

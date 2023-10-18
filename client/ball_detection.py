@@ -5,13 +5,11 @@ import cv2
 
 class POINT(ctypes.Structure):
     '''
-        ctypes structure for use in detect_center_proc. stores an x and y point
-        for a circle that has been identified. For use in the val ctypes field
-        for communicating between main client process and the detect_center_proc
-        process.
+    Stores the position of ball and the corresponding timestamp.
 
-        To create, use the following code:
-        point = POINT(int, int)
+    param x: position on x-axis of the ball
+    param y: position on y-axis of the ball
+    param time_stamp: corresponding timestamp
     '''
     _fields_ = [
         ("x", ctypes.c_int),
@@ -21,14 +19,11 @@ class POINT(ctypes.Structure):
 
 def detect_center_proc(que: mp.Queue, val: mp.Value, cond: mp.Value):
     '''
-        Coroutine to run detect_center function within a process.
-        Updates val with estimated center of circle in the frame that was popped from que during the same iteration.
-        Waits until main thread has dealt with val to pop another frome from que and start analyzing it 
+    Run detect_center function in a process. Continously update estimated ball center for frames in que
 
-        inputs:
-            que = used to pass frames and timestamps to process
-            val = used to pass image center coordinates and corresponding timestamp back to main thread
-            cond = condition for whether or not the main thread has dealt with the value in val. 0 nor no it hasn't
+    param que = used to pass frames and timestamps to process
+    param val = used to pass image center coordinates and corresponding timestamp back to main thread
+    param cond = whether main thread has dealt with the value in val.
     '''
     try:
         while True:
@@ -39,20 +34,22 @@ def detect_center_proc(que: mp.Queue, val: mp.Value, cond: mp.Value):
     
 def update_center_values(que: mp.Queue, val: mp.Value, cond: mp.Value):
     '''
-        This should only be called in detect_center_proc. This was pulled out of the process loop
-        in order to write a unit test for it.
-        updates values when appropriate
+    Update estimated ball center for frames
+
+    param que = used to pass frames and timestamps to process
+    param val = used to pass image center coordinates and corresponding timestamp back to main thread
+    param cond = whether main thread has dealt with the value in val.
     '''
     if que.qsize() > 0 and cond.value==0:
         with cond.get_lock():
-            frame, timestamp = que.get() # get bgr frame from the que
+            frame, timestamp = que.get()
             circles = detect_center(frame)
+
+             # if detection fails, use last estimated position
             if circles is None:
-                # if algorithm cant find center of circle, use last estimated position
                 val.time_stamp = timestamp
                 cond.value = 1
             else:
-                # print(circles)
                 val.x = int(circles[0])
                 val.y = int(circles[1])
                 val.time_stamp = timestamp
@@ -60,22 +57,14 @@ def update_center_values(que: mp.Queue, val: mp.Value, cond: mp.Value):
 
 def detect_center(frame: np.ndarray, dp: float = 6, minDist: float = 8) -> list[int, int, int]:
     '''
-        This function estimates the center of a circle in an image using the Hough Transformation
-        input:
-            frame = ndarray in BGR24 format representing picture
-            dp = accumulator matrix scale factor
-            minDist = minimum distance between estimated circle centers
-        returns:
-            list[x,y, r] = (x_coord, y_coord, radius)
-        Note: this function needs to be tuned
-    '''
-    # convert to grayscale
-    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    # normally the image would be blurred to reduce noise and make the circles more distinct
-    # however, this is a bright circle on a black background, so the circle is as crisp as it
-    # gets, no need to blur here
+    Detect and esitimate the center of a ball in an image using the Hough Transformation.
 
-    # apply hough circle tranform to get the estimated center of the circle
+    return: list [x_position, y_position, radius]
+    param frame = ndarray in BGR24 format representing picture
+    param dp = accumulator matrix scale factor
+    param minDist = minimum distance between estimated ball centers
+    '''
+    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     circles = cv2.HoughCircles(gray_frame, cv2.HOUGH_GRADIENT, dp, minDist)
     if circles is not None:
         return circles[0][0]

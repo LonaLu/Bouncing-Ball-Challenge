@@ -33,7 +33,7 @@ class Frame():
         cv.circle(frame, (self.x_position, self.y_position), radius = self.radius, thickness = -1, color = (0, 0, 255)) 
         return frame
     
-    def increment_position(self):
+    def ball_move(self):
         '''
             Increment the position of the ball by the velocity mulitplied by the sense.
             If ball is out of bounds, reverse the sense and increment in the other direction

@@ -8,15 +8,16 @@ from ball_detection import POINT, detect_center_proc
 
 class RTCClient():
     '''
-        An RTCClient meant to consume a BallVideoStreamTrack (defined in server), process the frame, and
-        eventually send back an estimated center of the ball from the consumed frame.
+    RTCClient receives frames from the server, determines location of the ball, and sends location back to server
     '''
+
     def __init__(self, host: str, port: str):
         '''
-            Initializes values needed and also starts _frame_proc process for analyzing frames.
-           _proc_value.x represents the extimated x coordinate of the circle from the last analyzed frame
-           _proc_value.y is the same as x but for the y coordinate
-           _proc_que is used to send frames _frame_proc 
+        Initialze values and start process for analyzing frames
+
+        param _proc_value: estimated ball center location 
+        param _proc_que: queue for sending frames
+        param _proc_cond: whether value is processed
         '''
         self.signal: TcpSocketSignaling = TcpSocketSignaling(host, port)
         self.pc = aiortc.RTCPeerConnection()
@@ -24,7 +25,7 @@ class RTCClient():
         self.track = None
         self._m = mp.Manager()
         self._proc_que = self._m.Queue()
-        self._proc_value = mp.Value(POINT, lock=False)   # don't need a lock because there's only 1 writer and 1 reader. read/writes are synced as well
+        self._proc_value = mp.Value(POINT, lock=False) 
         self._proc_cond = mp.Value(ctypes.c_int, lock=True)
         self._proc_value.x = -1
         self._proc_value.y = -1
@@ -39,33 +40,23 @@ class RTCClient():
 
     async def register_on_callbacks(self):
         '''
-            Register callbacks when an RTC event happens.
-            This client handles two events:
-                1) on track event - set track to self.track
-                2) on datachannel event - set channel to self.channel
-                3) on connectionstatechange event - exit if connection is dropped
+        Register callbacks when an RTC event happens.
         '''
         @self.pc.on("datachannel")
         def on_datachannel(chan: aiortc.RTCDataChannel):
-            '''
-                When a data channel is connected, set self.channel to this channel
-            '''
+            #When a data channel is connected, set self.channel to this channel
             print("channel connected")
             self.channel = chan
         
         @self.pc.on("track")
         def on_track(track: aiortc.MediaStreamTrack):
-            '''
-                When a track is connected, set self.track to track
-            '''
+            # When a track is connected, set self.track to track
             print("track connected")
             self.track = track
 
         @self.pc.on("connectionstatechange")
         async def on_connectionstatechange():
-            '''
-                Log details about connection state. If connection fails, just exit program
-            '''
+            # Log details about connection state. If connection fails, just exit program
             print(f"connection state is {self.pc.connectionState}")
             if self.pc.connectionState == "failed":
                 await self.pc.close()
@@ -74,7 +65,7 @@ class RTCClient():
      
     def show_frame(self, ndarr_frame: np.ndarray):
         '''
-            print aframe in bgr format
+        print frame in bgr format
         '''
         cv2.imshow('client', ndarr_frame)
         cv2.waitKey(1)
@@ -82,7 +73,7 @@ class RTCClient():
 
     async def _run_track(self) -> bool:
         '''
-            Attempts to get the next frame from the track
+        Get the next frame from the track
         '''
         try:
             frame = await self.track.recv()
@@ -98,59 +89,47 @@ class RTCClient():
         
         with self._proc_cond.get_lock():
             if self._proc_cond.value == 1:
-                # deal with processed frame aka send it over to server
-                # send server the estimated values of the center of circle with the timestamp for it as well
                 self.channel.send(f'{self._proc_value.x}\t{self._proc_value.y}\t{self._proc_value.time_stamp}')
                 self._proc_cond.value = 0
-            else:
-                # continue processing stream
-                pass
         return True
     
     
     async def run(self):
         '''
-            Method to run server.
-            
-            Registers callbacks, then calls consume signal. Once WebRTC has done its thing and there's a peer 
-            to peer connection, the track being served starts to get consumed and keeps getting consumed.
-            When consumption stops due to connection ending, call shutdown and end the client process
+        Run client
         '''
-
         await self.register_on_callbacks()
         while await self.consume_signal():
             if self.track is not None:
                 while await self._run_track():
                     pass
+        #When connection stops, end client process
         await self.shutdown()
     
 
     async def shutdown(self):
         '''
-            Method to shut down client. Makes sure frame analysis process is killed
+        Shut down client, kill process
         '''
         self._frame_proc.kill()
     
 
     def __del__(self):
         '''
-            make sure frame analysis process gets killed when destructor is called
+        Kill process when destructor is called
         '''
         self._frame_proc.kill()
 
     async def consume_signal(self) ->bool:
         '''
-            waits for a signal response through a tcp connection.
+        Wait for a signal response through a tcp connection.
 
-            If the data recieved through the signal is an ICE Candidate or and SDP offer/answer,
-            handle that case and return True. If signal was an sdp offer, create an answer and send it
-
-            If not Returns False
+        If the data recieved through the signal is an ICE Candidate or and SDP offer/answer,
+        handle that case and return True. 
+        If signal was an sdp offer, create an answer and send it
         '''
         obj = None
         while True:
-            # wait for a connection to the server. If the server is not running, 
-            # receive will result in an exception, so keep eating the
             try:
                 obj = await self.signal.receive()
                 break
