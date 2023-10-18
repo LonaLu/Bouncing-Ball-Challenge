@@ -19,7 +19,7 @@ class POINT(ctypes.Structure):
         ("time_stamp", ctypes.c_int)
     ]
 
-def detect_center_proc(que: mp.Queue, val: mp.Value, cond: mp.Value, dp: float = 6, minDist: float = 5):
+def detect_center_proc(que: mp.Queue, val: mp.Value, cond: mp.Value):
     '''
         Coroutine to run detect_center function within a process.
         Updates val with estimated center of circle in the frame that was popped from que during the same iteration.
@@ -49,7 +49,6 @@ def update_center_values(que: mp.Queue, val: mp.Value, cond: mp.Value):
             circles = detect_center(frame)
             if circles is None:
                 # if algorithm cant find center of circle, use last estimated position
-                print(f"skipped frame at timestamp {timestamp}")
                 val.time_stamp = timestamp
                 cond.value = 1
             else:
