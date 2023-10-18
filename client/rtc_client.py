@@ -56,7 +56,6 @@ class RTCClient():
             '''
             print("channel connected")
             self.channel = chan
-            chan.send("hi")
         
         @self.pc.on("track")
         def on_track(track: aiortc.MediaStreamTrack):

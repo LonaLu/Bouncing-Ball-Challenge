@@ -18,7 +18,6 @@ class BallBouncingTrack(aiortc.VideoStreamTrack):
         self.height = height
         self.frame_generator = Frame(velocity, radius, width, height)
         self.ball_location_dict = ball_location_dict # key will be frame timestamp, value will be (x,y) tuple
-        self.count = 0
 
     async def recv(self):
         '''
@@ -27,10 +26,9 @@ class BallBouncingTrack(aiortc.VideoStreamTrack):
         pts, time_base = await self.next_timestamp()
         frame = self.frame_generator.get_frame()
         self.frame_generator.increment_position()
+        self.ball_location_dict[pts] = (self.frame_generator.x_position, self.frame_generator.y_position)
         frame = av.VideoFrame.from_ndarray(frame, format='bgr24')
         frame.pts = pts
         frame.time_base = time_base
-        self.ball_location_dict[pts] = (self.frame_generator.x_position, self.frame_generator.y_position)
-        self.count += 1
         return frame
     
