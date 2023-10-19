@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
 
+
 class Frame():
     '''
     Generate frames of ball bouncing across the screen

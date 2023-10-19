@@ -4,6 +4,8 @@ from ball_bouncing_track import BallBouncingTrack
 from typing import Tuple
 import cv2
 import numpy as np
+
+
 class RTCServer():
     '''
     RTCServer creates ball bouncing video and send frames to client. When the client sends back
