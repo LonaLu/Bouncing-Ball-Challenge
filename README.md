@@ -1,36 +1,48 @@
-# AIORTC Client and Server
-Repository Written by Branden Kretschmer  email: brandenkretsch@gmail.com  
+# Bouncing Ball Project
+Code for Nimble Programming Chanllenge by Lona Lu
 
-### Note: This repository was developed on an apple silicon mac
+## Setting Up the Environment
+```pip install -r requirements.txt```
 
-### Dependencies
-All Python code written in this repository was tested with Python 3.11.4 on an apple silicon mac. Dependencies for this repository can be found in  the requirements.txt file or the conda_environment.yaml. The docker files for creating client and server images use Ubuntu 22.04 as their base  and then install Python 3.11.4 and all dependencies outlined in requirements.txt (view client and server docker files for more info)
-
+## How to Run Project
+Run following commands from the root directory
+1. ```python client/client.py```  
+2. ```python server/server.py```  
 
 ## How to Run Tests
-just run ```pytest``` as a command in the root directory of this repository
+Run following commands from the root directory:
+```pytest``` 
 
+Run tests for client:
+```pytest -m client``` 
 
-## How to Run Python Scripts
-Spin up a Python 3.11 environment with all the dependencies required. This can be done with either conda or pip. 
-Once the requirements have been installed, make 2 calls from the root directory of this repository:  
-1. ```python server/server.py -n localhost -p 50051 -d```  
-2. ```python client/client.py -n localhost -p 50051 -d --dp 6```  
-Two opencv images should appear. RMSE between estimated and actual center is shown in the server's output log
+Run tests for server:
+```pytest -m server``` 
 
-## How to Run in KIND (Kubernetes in Docker)
-make shure kind, docker, and kubectl are installed  
-1. Build the docker images using ```./build_docker.sh```  
-2. Create a kind cluster using command: ```kind create cluster --name test```  
-3. Point kubectl to the newly creaetd cluster: ```kubectl cluster-info --context kind-test```  
-4. Set up the cluster and apply deployments and service: ```setup_cluster.sh```
-5. Look at logs of server to find the RMSE of the estimated circle center.
-6. Cleanup cluster when finished
+## Build Docker Images
+For client and server: <br />
+```docker build -f client/Dockerfile -t client .```
+```docker build -f server/Dockerfile -t server .```
 
-## What Could Improve?
-More unit tests for functions, especially the asynchronous ones (I ran out of time to figure out how to mock a coroutine and write tests with the mock)
-Better interface definitions for RTCClient and RTCServer classes (ex. have them inherit from an ABC)  
-Handle multiple connections to the server at once  
-Better logging instead of using print to log things. This would help with the k8s deployment  
-At higher resolutions, things crash due to latency in frame processing from both the client side and the server side.  The latency causes things to hang. Scaling frame rate inversely with resolution would solve this problem. So would using more processes and/or posix threads.  
-Deployment files could be scaled up, but the server-signal-service would have to become a load balancer that only send 1 connection at a time to a server (server can only handle one connection).  
+## Requirements Pointer
+1. Run ```python server/server.py```
+2. Run ```python client/client.py```
+3. client/rtc_client.py and server/rtc_server.py<br />
+    a. ```RTCServer.run()```<br />
+    b.```RTCClient.consume_signal()```
+4. Video displayed when running project (source code: server/rtc_server.py)
+5. server/ball_bouncing_track.py
+6. ```RTCClient.show_frame()```
+7. ```RTCClient.__init__()```
+8. client/ball_dectection.update_center_values
+9. client/ball_dectection.detect_center
+10. client/ball_dectection.update_center_values
+11. ```RTCClient._run_track()```
+12. ```RTCServer.display_frame()``` and ```RTCServer.calculate_error```, see server side log for numerical error
+13. See comments in files
+14. test/test_ball.py, see pytest instructions above 
+15. README
+16. See video in zip file
+17. See zip file
+18. See docker instructions above 
+19. Don't have time for that, sorry :(
