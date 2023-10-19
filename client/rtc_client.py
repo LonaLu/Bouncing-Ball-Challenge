@@ -6,6 +6,7 @@ import ctypes
 import multiprocessing as mp
 from ball_detection import POINT, detect_center_proc
 
+
 class RTCClient():
     '''
     RTCClient receives frames from the server, determines location of the ball, and sends location back to server
@@ -15,9 +16,9 @@ class RTCClient():
         '''
         Initialze values and start process for analyzing frames
 
-        param _proc_value: estimated ball center location 
-        param _proc_que: queue for sending frames
-        param _proc_cond: whether value is processed
+        param _proc_value:  estimated ball center location 
+        param _proc_que:    queue for sending frames
+        param _proc_cond:   whether value is processed
         '''
         self.signal: TcpSocketSignaling = TcpSocketSignaling(host, port)
         self.pc = aiortc.RTCPeerConnection()
@@ -61,7 +62,6 @@ class RTCClient():
             if self.pc.connectionState == "failed":
                 await self.pc.close()
                 exit(-1)
-
      
     def show_frame(self, ndarr_frame: np.ndarray):
         '''
@@ -69,7 +69,6 @@ class RTCClient():
         '''
         cv2.imshow('client', ndarr_frame)
         cv2.waitKey(1)
-
 
     async def _run_track(self) -> bool:
         '''
@@ -93,7 +92,6 @@ class RTCClient():
                 self._proc_cond.value = 0
         return True
     
-    
     async def run(self):
         '''
         Run client
@@ -106,14 +104,12 @@ class RTCClient():
         #When connection stops, end client process
         await self.shutdown()
     
-
     async def shutdown(self):
         '''
         Shut down client, kill process
         '''
         self._frame_proc.kill()
     
-
     def __del__(self):
         '''
         Kill process when destructor is called
@@ -149,5 +145,4 @@ class RTCClient():
             return True
         if obj is BYE:
             print("goodbye")
-        
         return False

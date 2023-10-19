@@ -4,12 +4,16 @@ import av
 
 class BallBouncingTrack(aiortc.VideoStreamTrack):
     '''
-        New stream track that will create a video of a ball bouncing across the screen
+    Ball Bouncing Video Stream Track
     '''
     def __init__(self, velocity: int, radius: int, width: int, height: int, ball_location_dict: dict = {}):
         '''
-            Initialize variables needed for the stream track. This includes instatiating the grame generator and keeping
-            a dictionary for ball location.
+        param velocity:             ball moving velocity in both x and y axis
+        param radius:               ball radius
+        param width:                frame width
+        param height:               frame height
+        param frame_generator:      generator of ball bouncing video frames
+        param ball_location_dict:   dictionary to store ball locations {timestamp: (x_position, y_position)}
         '''
         super().__init__()
         self.velocity = velocity
@@ -17,11 +21,11 @@ class BallBouncingTrack(aiortc.VideoStreamTrack):
         self.width = width
         self.height = height
         self.frame_generator = Frame(velocity, radius, width, height)
-        self.ball_location_dict = ball_location_dict # key will be frame timestamp, value will be (x,y) tuple
+        self.ball_location_dict = ball_location_dict
 
     async def recv(self):
         '''
-            Generate and return the next frame in the stream
+        Generate and return the next frame in the stream
         '''
         pts, time_base = await self.next_timestamp()
         frame = self.frame_generator.get_frame()

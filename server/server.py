@@ -3,8 +3,7 @@ from rtc_server import RTCServer
 
 async def main():
     '''
-        Entry point into server.py. Gets parameters to run script from command line arguments or environment variables.
-        Then it builds a BallVideoRTCServer and runs it.
+    Build and run server
     '''
     # Server can only have one connection at a time, but the while loop spins up a new server if a disconnection happens
     while True:

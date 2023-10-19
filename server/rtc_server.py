@@ -6,9 +6,8 @@ import cv2
 import numpy as np
 class RTCServer():
     '''
-        Class for an RTCServer that serves a video of a ball bouncing across the screen. If the client sends back
-        coordinates, the server will calculate the error in the coordinates and attempt to draw the error using
-        cv.imshow().
+    RTCServer creates ball bouncing video and send frames to client. When the client sends back
+    coordinates, server will display ball based on received coordinates and calucalte error.
     '''
     def __init__(self, host: str, port: str, velocity: int, radius: int, width: int, height: int):
         self.ball_position = {}
@@ -20,15 +19,13 @@ class RTCServer():
 
     def calculate_error(self, actual: Tuple[int, int], estimated: Tuple[int, int]):
         '''
-            Calculates Euclidean Distance as Error for an actual point and an estimated point from the client
+        Calculates Euclidean Distance as Error between acutall ball position and estimated ball position from the client
         '''
         return np.linalg.norm(np.asarray(actual) - np.asarray(estimated))
 
-
     def display_frame(self, server_loc: Tuple[int, int], client_estimated_loc: Tuple[int, int]):
         '''
-            Draws original ball frame in green with client's estimate on top with
-            a red center and outline.
+        Display an overlay of server side generated bouncing ball(green) and ball received from the client(red)
         '''
         radius = self.stream_track.radius
         frame_server = np.zeros((self.stream_track.height, self.stream_track.width, 3), dtype='uint8')
@@ -41,17 +38,17 @@ class RTCServer():
 
     async def register_on_callbacks(self):
         '''
-            Define event callback functions here
+        Event callback functions
         '''
         channel = self.channel
         @channel.on("message")
         def on_message(message):
             '''
-                When a message comes over the datachannel, this function gets called
-                This function parses the message and then attempts to calculate
-                RMS Error and draw the received ball coordinates from the client.
+            Process received messages from client
+
+            values: [x_position, y_position, timestamp]
             '''
-            values = message.split('\t') # for returned estimated coordinates, server expects a string with format: "{x_pos}\t{y_pos}\t{timestamp}"
+            values = message.split('\t') 
 
             try:
                 ball_location_dict = self.stream_track.ball_location_dict
@@ -63,25 +60,25 @@ class RTCServer():
                 #print timestamp and corresponding values every few seconds
                 if timestamp % 50000 == 0:
                     print(f"=====timestamp {timestamp}=====\n\tserver ball location: "
-                        f"{server_loc}\n\tclient estimated location: {client_estimated_loc}\n\tError(euclidean distance): {round(error,2)}")
+                        f"{server_loc}\n\tclient estimated location: {client_estimated_loc}\n\t"
+                        f"Error(euclidean distance): {round(error,2)}")
                 del ball_location_dict[int(values[2])]
             except Exception as e:
-                print("Error:", e)
+                print("Process Client Message Error:", e)
         
         @self.pc.on("connectionstatechange")
         async def on_connectionstatechange():
             '''
-                Log details about connection state. if connection fails, just exit program
+            Log details about connection state. if connection fails, just exit program
             '''
             print(f"connection state is {self.pc.connectionState}")
             if self.pc.connectionState == "failed":
                 await self.pc.close()
                 exit(-1)
 
-
     async def run(self):
         '''
-            Event loop for running the server
+        Run server
         '''
         await self.register_on_callbacks()
 
@@ -93,18 +90,14 @@ class RTCServer():
         await self.signal.send(self.pc.localDescription)
 
         print("offer received")
-
         while await self.consume_signal():
-            print("signal consumed")
             continue
         await self.shutdown()
         return True
-    
 
     async def shutdown(self):
         '''
-            Method to shutdown server
-            Attempts to close all connections
+        Close all connections
         '''
         await self.signal.close()
         try:
@@ -118,12 +111,10 @@ class RTCServer():
 
     async def consume_signal(self) -> bool:
         '''
-            waits for a signal response through a tcp connection.
+        Wait for a signal response through a tcp connection.
 
-            If the data recieved through the signal is an ICE Candidate or and SDP offer/answer,
-            handle that case and return True
-
-            If not Returns False
+        If the data recieved through the signal is an ICE Candidate or and SDP offer/answer,
+        handle that case and return True
         '''
         obj = await self.signal.receive()
         if isinstance(obj, aiortc.RTCSessionDescription):
