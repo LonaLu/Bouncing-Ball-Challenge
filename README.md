@@ -1,5 +1,5 @@
 # Bouncing Ball Project
-Code for Nimble Programming Chanllenge by Lona Lu
+Programming Chanllenge by Lona Lu
 
 ## Setting Up the Environment
 ```pip install -r requirements.txt```
@@ -45,4 +45,3 @@ For client and server: <br />
 16. See video in zip file
 17. See zip file
 18. See docker instructions above 
-19. Don't have time for that, sorry :(
